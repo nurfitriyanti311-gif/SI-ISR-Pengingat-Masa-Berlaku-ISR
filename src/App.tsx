@@ -4,6 +4,7 @@ import { CheckCircle2, Upload } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ClientDirectoryView } from './components/ClientDirectoryView';
 import { DashboardView } from './components/DashboardView';
+import { DeleteSimsModal } from './components/DeleteSimsModal';
 import { FollowUpModal } from './components/FollowUpModal';
 import { FrequencyBackground } from './components/FrequencyBackground';
 import { ImportModal } from './components/ImportModal';
@@ -95,6 +96,7 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>(initialSetup.nextState);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isDeleteSimsOpen, setIsDeleteSimsOpen] = useState(false);
   const [followupTargetId, setFollowupTargetId] = useState<string | null>(null);
   const [statusBanner, setStatusBanner] = useState(() => {
     if (initialSetup.autoSent > 0 || initialSetup.autoSkipped > 0) {
@@ -330,6 +332,43 @@ export default function App() {
     setStatusBanner('Seluruh data contoh berhasil dikembalikan ke kondisi awal.');
   }
 
+  function handleDeleteSingleLicense(licenseId: string) {
+    const target = appState.licenses.find((l) => l.id === licenseId);
+    setAppState((prev) => ({
+      ...prev,
+      licenses: prev.licenses.filter((l) => l.id !== licenseId),
+      logs: prev.logs.filter((log) => log.isrId !== licenseId),
+    }));
+    if (target) {
+      setStatusBanner(`Data izin ${target.currLicNum} berhasil dihapus.`);
+    }
+  }
+
+  function handleDeleteAllSims(alsoDeleteClients: boolean) {
+    setAppState((prev) => ({
+      ...prev,
+      licenses: [],
+      logs: [],
+      clients: alsoDeleteClients ? [] : prev.clients,
+      lastImportAt: '',
+      lastImportSummary: '',
+    }));
+    setStatusBanner(
+      alsoDeleteClients
+        ? 'Seluruh data SIMS, log notifikasi, dan direktori klien berhasil dihapus.'
+        : 'Seluruh data izin SIMS dan log notifikasi berhasil dihapus.',
+    );
+  }
+
+  function handleDeleteArchivedOnly() {
+    const archivedCount = appState.licenses.filter((l) => !l.isEligible).length;
+    setAppState((prev) => ({
+      ...prev,
+      licenses: prev.licenses.filter((l) => l.isEligible),
+    }));
+    setStatusBanner(`${archivedCount} data arsip non-aktif berhasil dihapus.`);
+  }
+
   const navItems: { id: ActiveTab; label: string }[] = [
     { id: 'dashboard', label: 'Dasbor' },
     { id: 'queue', label: `Antrean (${reminderQueue.length})` },
@@ -423,8 +462,10 @@ export default function App() {
             onChangeReferenceDate={handleChangeReferenceDate}
             onRunScan={handleRunScan}
             onOpenImport={() => setIsImportOpen(true)}
+            onOpenDeleteSims={() => setIsDeleteSimsOpen(true)}
             onOpenQueue={() => setActiveTab('queue')}
             onSelectLicenseForFollowup={(lic) => setFollowupTargetId(lic.id)}
+            onDeleteSingleLicense={handleDeleteSingleLicense}
           />
         )}
 
@@ -470,6 +511,16 @@ export default function App() {
         referenceDateIso={referenceDateIso}
         onClose={() => setIsImportOpen(false)}
         onApplyImport={handleApplyImport}
+      />
+
+      <DeleteSimsModal
+        isOpen={isDeleteSimsOpen}
+        totalLicensesCount={appState.licenses.length}
+        archivedCount={appState.licenses.filter((l) => !l.isEligible).length}
+        clientsCount={appState.clients.length}
+        onClose={() => setIsDeleteSimsOpen(false)}
+        onDeleteAllSims={handleDeleteAllSims}
+        onDeleteArchivedOnly={handleDeleteArchivedOnly}
       />
 
       <FollowUpModal

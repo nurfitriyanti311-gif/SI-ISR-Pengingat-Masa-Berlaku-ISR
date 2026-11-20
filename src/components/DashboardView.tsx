@@ -1,6 +1,6 @@
 /* Halaman utama Dasbor Pemantauan ISR, filter status, pencarian, dan pemindaian rentang H-1, H-3, H-7 (FT-05 & FT-03). */
 
-import { BellRing, Calendar, ClipboardEdit, Search, Upload } from 'lucide-react';
+import { BellRing, Calendar, ClipboardEdit, Search, Trash2, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatTanggalIndonesia } from '../lib/format';
 import {
@@ -28,8 +28,10 @@ interface DashboardViewProps {
   onChangeReferenceDate: (nextDate: string) => void;
   onRunScan: () => void;
   onOpenImport: () => void;
+  onOpenDeleteSims: () => void;
   onOpenQueue: () => void;
   onSelectLicenseForFollowup: (license: IsrLicense) => void;
+  onDeleteSingleLicense: (licenseId: string) => void;
 }
 
 export function DashboardView({
@@ -40,11 +42,14 @@ export function DashboardView({
   onChangeReferenceDate,
   onRunScan,
   onOpenImport,
+  onOpenDeleteSims,
   onOpenQueue,
   onSelectLicenseForFollowup,
+  onDeleteSingleLicense,
 }: DashboardViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DashboardFilter>('ALL_ACTIVE');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const clientMap = useMemo(
     () => new Map(clients.map((c) => [c.clntId, c])),
@@ -148,6 +153,14 @@ export function DashboardView({
             >
               <BellRing className="h-4 w-4 text-blue-700" aria-hidden="true" />
               <span>Pindai Sekarang</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenDeleteSims}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-red-800 transition-colors duration-150 ease-out hover:bg-red-50 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              <span>Hapus Data</span>
             </button>
           </div>
         </div>
@@ -290,7 +303,21 @@ export function DashboardView({
         </div>
 
         <div className="mt-6 overflow-x-auto">
-          {filteredLicenses.length === 0 ? (
+          {licenses.length === 0 ? (
+            <div className="rounded-xl bg-neutral-50 p-8 text-center">
+              <p className="text-base font-medium text-neutral-900">
+                Belum ada data SIMS tersimpan.
+              </p>
+              <button
+                type="button"
+                onClick={onOpenImport}
+                className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              >
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                <span>Unggah SIMS</span>
+              </button>
+            </div>
+          ) : filteredLicenses.length === 0 ? (
             <div className="rounded-xl bg-neutral-50 p-8 text-center">
               <p className="text-base font-medium text-neutral-900">
                 Tidak ada data izin yang cocok dengan filter saat ini.
@@ -378,14 +405,48 @@ export function DashboardView({
                         )}
                       </td>
                       <td className="py-3 pl-3 align-top text-right">
-                        <button
-                          type="button"
-                          onClick={() => onSelectLicenseForFollowup(lic)}
-                          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-                        >
-                          <ClipboardEdit className="h-4 w-4 text-neutral-600" aria-hidden="true" />
-                          <span>Tindak Lanjut</span>
-                        </button>
+                        <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onSelectLicenseForFollowup(lic)}
+                            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                          >
+                            <ClipboardEdit className="h-4 w-4 text-neutral-600" aria-hidden="true" />
+                            <span>Tindak Lanjut</span>
+                          </button>
+
+                          {pendingDeleteId === lic.id ? (
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onDeleteSingleLicense(lic.id);
+                                  setPendingDeleteId(null);
+                                }}
+                                className="inline-flex min-h-[44px] items-center rounded-xl bg-red-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-800 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                              >
+                                Ya, Hapus
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPendingDeleteId(null)}
+                                className="inline-flex min-h-[44px] items-center rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              aria-label={`Hapus izin ${lic.currLicNum}`}
+                              onClick={() => setPendingDeleteId(lic.id)}
+                              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-50 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              <span>Hapus</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
