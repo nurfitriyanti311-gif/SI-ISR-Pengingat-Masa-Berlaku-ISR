@@ -1,0 +1,6 @@
+{
+  "name": "SI-ISR — Pengingat Masa Berlaku ISR",
+  "description": "Sistem pemantauan dan pengingat masa berlaku Izin Stasiun Radio (H-7) berbasis data laporan SIMS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

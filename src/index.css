@@ -1,0 +1,21 @@
+/* Konfigurasi gaya global Tailwind CSS dan pemuatan font lokal IBM Plex Sans. */
+
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  body {
+    background-color: #fafafa;
+    color: #171717;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
